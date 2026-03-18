@@ -1,0 +1,15 @@
+[global]
+workers = 4
+batch_size = 50000
+default_format = "parquet"
+output_dir = "./testdata/db_export/postgres"
+overwrite = true
+
+[[databases]]
+name = "pg"
+driver = "postgres"
+dsn = "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable"
+
+[[tasks]]
+db = "pg"
+tables = ["all_types", "nullable_test", "huge_table"]

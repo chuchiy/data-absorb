@@ -448,25 +448,35 @@ func convToBytes(v interface{}) []byte {
 func convToDecimal128(v interface{}) decimal.Decimal128 {
 	switch n := v.(type) {
 	case int8:
-		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+		r, _ := decimal.Decimal128FromFloat(float64(int64(n)*10000), 38, 10)
+		return r
 	case int16:
-		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+		r, _ := decimal.Decimal128FromFloat(float64(int64(n)*10000), 38, 10)
+		return r
 	case int32:
-		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+		r, _ := decimal.Decimal128FromFloat(float64(int64(n)*10000), 38, 10)
+		return r
 	case int64:
-		return decimal.NewDecimal128FromInt(n * 10000)
+		r, _ := decimal.Decimal128FromFloat(float64(n)*10000, 38, 10)
+		return r
 	case int:
-		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+		r, _ := decimal.Decimal128FromFloat(float64(n)*10000, 38, 10)
+		return r
 	case uint8:
-		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+		r, _ := decimal.Decimal128FromFloat(float64(int64(n)*10000), 38, 10)
+		return r
 	case uint16:
-		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+		r, _ := decimal.Decimal128FromFloat(float64(int64(n)*10000), 38, 10)
+		return r
 	case uint32:
-		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+		r, _ := decimal.Decimal128FromFloat(float64(int64(n)*10000), 38, 10)
+		return r
 	case uint64:
-		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+		r, _ := decimal.Decimal128FromFloat(float64(n)*10000, 38, 10)
+		return r
 	case uint:
-		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+		r, _ := decimal.Decimal128FromFloat(float64(n)*10000, 38, 10)
+		return r
 	case float32:
 		r, _ := decimal.Decimal128FromFloat(float64(n), 38, 10)
 		return r
@@ -477,6 +487,7 @@ func convToDecimal128(v interface{}) decimal.Decimal128 {
 		r, _ := decimal.Decimal128FromString(n, 38, 10)
 		return r
 	default:
-		return decimal.NewDecimal128FromInt(0)
+		r, _ := decimal.Decimal128FromFloat(0, 38, 10)
+		return r
 	}
 }

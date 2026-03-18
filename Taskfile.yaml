@@ -12,7 +12,7 @@ tasks:
       - go test ./...
 
   integration:
-    desc: Run integration test
+    desc: Run integration test with SQLite
     cmds:
       - go run ./cmd/integration_test
 
@@ -26,8 +26,91 @@ tasks:
     cmds:
       - rm -rf bin/
       - rm -rf testdata/integration_output
+      - rm -rf testdata/db_export
       - rm -f testdata/*.db
 
   all:
     desc: Build, test, and run integration test
     deps: [build, test, integration]
+
+  db-up:
+    desc: Start database containers
+    cmds:
+      - docker-compose up -d
+
+  db-down:
+    desc: Stop database containers
+    cmds:
+      - docker-compose down
+
+  db-wait:
+    desc: Wait for databases to be ready
+    cmds:
+      - sleep 45
+
+  db-init-postgres:
+    desc: Initialize PostgreSQL test data
+    cmds:
+      - docker exec data-absorb-postgres psql -U testuser -d testdb -c "DROP TABLE IF EXISTS all_types CASCADE, nullable_test CASCADE, huge_table CASCADE;"
+      - docker exec -i data-absorb-postgres psql -U testuser -d testdb < scripts/init_postgres.sql
+
+  db-init-mariadb:
+    desc: Initialize MariaDB test data
+    cmds:
+      - docker exec data-absorb-mariadb mysql -uroot -prootpass testdb -e "DROP TABLE IF EXISTS all_types, nullable_test, huge_table;"
+      - docker exec -i data-absorb-mariadb mysql -uroot -prootpass testdb < scripts/init_mariadb.sql
+
+  db-init-oracle:
+    desc: Initialize Oracle test data
+    cmds:
+      - docker exec data-absorb-oracle sqlplus system/oraclepass@//localhost/XE @/docker-entrypoint-initdb.d/init.sql
+
+  db-export-postgres:
+    desc: Export from PostgreSQL
+    cmds:
+      - mkdir -p testdata/db_export/postgres
+      - go run ./cmd/data-absorb --config configs/db_postgres.toml
+
+  db-export-mariadb:
+    desc: Export from MariaDB
+    cmds:
+      - mkdir -p testdata/db_export/mariadb
+      - go run ./cmd/data-absorb --config configs/db_mariadb.toml
+
+  db-export-oracle:
+    desc: Export from Oracle
+    cmds:
+      - mkdir -p testdata/db_export/oracle
+      - go run ./cmd/data-absorb --config configs/db_oracle.toml
+
+  db-verify:
+    desc: Verify exported parquet files
+    cmds:
+      - python3 scripts/verify_export.py
+
+  db-test-postgres:
+    desc: Test PostgreSQL export
+    cmds:
+      - task: db-up
+      - task: db-wait
+      - task: db-init-postgres
+      - task: db-export-postgres
+      - task: db-verify
+
+  db-test-mariadb:
+    desc: Test MariaDB export
+    cmds:
+      - task: db-up
+      - task: db-wait
+      - task: db-init-mariadb
+      - task: db-export-mariadb
+      - task: db-verify
+
+  db-test-oracle:
+    desc: Test Oracle export
+    cmds:
+      - task: db-up
+      - task: db-wait
+      - task: db-init-oracle
+      - task: db-export-oracle
+      - task: db-verify

@@ -1,0 +1,15 @@
+[global]
+workers = 4
+batch_size = 50000
+default_format = "parquet"
+output_dir = "./testdata/db_export/mariadb"
+overwrite = true
+
+[[databases]]
+name = "maria"
+driver = "mysql"
+dsn = "testuser:testpass@tcp(localhost:3306)/testdb"
+
+[[tasks]]
+db = "maria"
+tables = ["all_types", "nullable_test", "huge_table"]
