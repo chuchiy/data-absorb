@@ -88,16 +88,6 @@ func (s *Scheduler) executeTask(ctx context.Context, task config.TaskConfig) err
 		return fmt.Errorf("E003: 获取数据库 %s 失败: %w", task.DB, err)
 	}
 
-	columns, err := s.getColumns(ctx, dbHandle, task.Tables[0])
-	if err != nil {
-		return fmt.Errorf("E004: 获取表 %s 列信息失败: %w", task.Tables[0], err)
-	}
-
-	schema, err := s.schemaBuilder.Build(columns)
-	if err != nil {
-		return fmt.Errorf("E005: 构建 schema 失败: %w", err)
-	}
-
 	outputDir := s.cfg.Global.OutputDir
 	format := s.cfg.Global.DefaultFormat
 	if task.Format != "" {
@@ -108,6 +98,19 @@ func (s *Scheduler) executeTask(ctx context.Context, task config.TaskConfig) err
 
 	for _, table := range task.Tables {
 		s.log.Info("Processing table", "table", table)
+
+		columns, err := s.getColumns(ctx, dbHandle, table)
+		if err != nil {
+			s.log.Error(err, "Failed to get table columns, skipping", "table", table)
+			continue
+		}
+
+		schema, err := s.schemaBuilder.Build(columns)
+		if err != nil {
+			s.log.Error(err, "Failed to build schema for table, skipping", "table", table)
+			continue
+		}
+
 		outputFile := table + ".parquet"
 		if format == "arrow" {
 			outputFile = table + ".arrow"

@@ -1,0 +1,33 @@
+version: '3'
+
+tasks:
+  build:
+    desc: Build the data-absorb binary
+    cmds:
+      - go build -o bin/data-absorb ./cmd/data-absorb
+
+  test:
+    desc: Run unit tests
+    cmds:
+      - go test ./...
+
+  integration:
+    desc: Run integration test
+    cmds:
+      - go run ./cmd/integration_test
+
+  lint:
+    desc: Run linter
+    cmds:
+      - go vet ./...
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf bin/
+      - rm -rf testdata/integration_output
+      - rm -f testdata/*.db
+
+  all:
+    desc: Build, test, and run integration test
+    deps: [build, test, integration]

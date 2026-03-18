@@ -1,0 +1,5 @@
+testdata/*.db
+testdata/output
+testdata/integration_*
+*.parquet
+*.arrow

@@ -17,51 +17,46 @@ A general database export tool that exports database tables to columnar file for
 ```
 .
 ├── cmd/
-│   └── data-absorb/
-│       └── main.go           # CLI entry point
-├── configs/
-│   └── example.toml          # Example configuration
+│   ├── data-absorb/          # CLI entry point
+│   └── integration_test/    # Integration test runner
 ├── internal/
-│   ├── config/
-│   │   ├── config.go         # Configuration parsing
-│   │   └── config_test.go    # Configuration tests
-│   ├── converter/
-│   │   ├── schema.go         # SQL to Arrow type mapping
-│   │   └── row.go            # Row to RecordBatch conversion
-│   ├── db/
-│   │   ├── driver.go         # Database driver registration
-│   │   ├── db_test.go        # Database tests
-│   │   └── executor.go       # Query execution
-│   ├── scheduler/
-│   │   ├── worker.go         # Worker pool scheduler
-│   │   └── integration_test.go # Integration tests
-│   └── writer/
-│       ├── factory.go        # Writer factory
-│       ├── parquet.go        # Parquet writer (ZSTD)
-│       ├── arrow.go          # Arrow IPC writer
-│       └── writer_test.go    # Writer tests
-├── pkg/
-│   └── types/
-│       └── types.go           # CLI argument types
-├── testdata/
-│   ├── test.db                # SQLite test database
-│   ├── test_config.toml      # Test configuration
-│   └── output/               # Output directory
+│   ├── config/              # Configuration parsing
+│   ├── converter/           # SQL to Arrow type mapping
+│   ├── db/                  # Database driver registration
+│   ├── scheduler/           # Worker pool scheduler
+│   └── writer/              # Parquet/Arrow IPC writers
+├── pkg/types/                # CLI argument types
+├── testdata/                 # Test data directory
+├── Taskfile.yaml            # Task automation
 ├── SPEC.md                   # Design specification
 └── README.md                 # This file
+```
+
+## Quick Start
+
+```bash
+# Install Task (optional, or use go directly)
+# https://taskfile.dev/installation/
+
+# Run tests
+task test
+
+# Run integration test
+task integration
+
+# Build binary
+task build
 ```
 
 ## Usage
 
 ```bash
-# Build
-go build -o data-absorb ./cmd/cli/
-
 # Run with config
-./data-absorb --config configs/example.toml
+go run ./cmd/data-absorb --config configs/example.toml
 
-# Show version
-./data-absorb --version
+# Or build and run
+task build
+./bin/data-absorb --config configs/example.toml
 ```
 
 ## Configuration (TOML)
@@ -120,16 +115,49 @@ SQL types are mapped to Arrow types:
 
 ## Development
 
+### Using Taskfile
+
 ```bash
-# Run tests
+task build      # Build the binary
+task test       # Run unit tests
+task integration  # Run integration test
+task lint       # Run linter
+task clean      # Clean build artifacts
+task all        # Build, test, and integration
+```
+
+### Using Go Commands
+
+```bash
+# Build
+go build -o bin/data-absorb ./cmd/data-absorb
+
+# Test
 go test ./...
 
-# Run integration tests
-go test -v -run "TestIntegration" ./internal/scheduler/
-
-# Build binary
-go build -o data-absorb ./cmd/cli/
+# Integration test
+go run ./cmd/integration_test
 ```
+
+## Integration Tests
+
+The integration test (`cmd/integration_test/main.go`) performs full end-to-end verification:
+
+1. **Generate test database**: Creates temporary SQLite DB with test data
+2. **Run export**: Executes data-absorb to export tables
+3. **Verify results**:
+   - Output files exist
+   - Row counts match source
+   - Data types are correct (BIGINT, VARCHAR, DECIMAL, TIMESTAMP)
+   - Data values are accurate
+
+### Verified Data Types
+
+- `id` → BIGINT
+- `name` → VARCHAR
+- `amount` → DECIMAL(38,10)
+- `created_at` → TIMESTAMP
+- nullable columns → properly handled
 
 ## Dependencies
 
@@ -142,30 +170,7 @@ go build -o data-absorb ./cmd/cli/
 - **MySQL**: [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql) - MySQL 驱动
 - **MSSQL**: [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb) - MSSQL 驱动
 - **Oracle**: [github.com/sijms/go-ora/v2](https://github.com/sijms/go-ora) - Oracle 驱动
-
-## Integration Tests
-
-The project includes integration tests that verify end-to-end functionality:
-
-```bash
-# Run all integration tests
-go test -v -run "TestIntegration" ./internal/scheduler/
-```
-
-### Test Integration Methods
-
-1. **TestIntegration_SQLiteToParquet**: Tests exporting a SQLite table to Parquet format
-   - Creates a test database connection
-   - Exports the `test_types` table
-   - Verifies output file is created and non-empty
-
-2. **TestIntegration_EmptyTable**: Tests handling of empty tables
-   - Exports an empty table
-   - Verifies schema-only file is created
-
-3. **TestIntegration_MultipleTables**: Tests parallel processing of multiple tables
-   - Exports multiple tables in a single task
-   - Verifies all output files are created
+- **duckdb**: CLI tool for verifying Parquet output
 
 ## License
 
