@@ -17,7 +17,7 @@ A general database export tool that exports database tables to columnar file for
 ```
 .
 ├── cmd/
-│   └── cli/
+│   └── data-absorb/
 │       └── main.go           # CLI entry point
 ├── configs/
 │   └── example.toml          # Example configuration
