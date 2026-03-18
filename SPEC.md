@@ -414,31 +414,38 @@ type Args struct {
 ```
 data-absorb/
 ├── cmd/
-│   └── cli/
-│       └── main.go              # CLI 入口
+│   ├── data-absorb/          # CLI 入口
+│   ├── integration_test/     # 集成测试
+│   └── benchmark/            # 性能测试工具
 ├── internal/
 │   ├── config/
-│   │   └── config.go            # 配置解析
+│   │   └── config.go         # 配置解析
 │   ├── db/
-│   │   ├── driver.go            # 驱动注册
-│   │   └── executor.go          # SQL 执行
+│   │   ├── driver.go         # 驱动注册
+│   │   └── executor.go       # SQL 执行
 │   ├── converter/
-│   │   ├── schema.go            # Schema 构建
-│   │   └── row.go               # 行数据转换
+│   │   ├── schema.go         # Schema 构建
+│   │   └── row.go            # 行数据转换
 │   ├── writer/
-│   │   ├── factory.go           # 写入器工厂
-│   │   ├── parquet.go           # Parquet 写入
-│   │   └── arrow.go             # Arrow IPC 写入
+│   │   ├── factory.go        # 写入器工厂
+│   │   ├── parquet.go        # Parquet 写入
+│   │   └── arrow.go          # Arrow IPC 写入
 │   └── scheduler/
-│       └── worker.go            # 任务调度
+│       └── worker.go         # 任务调度
 ├── pkg/
 │   └── types/
-│       └── types.go             # 公共类型
+│       └── types.go           # 公共类型
 ├── configs/
-│   └── example.toml             # 示例配置
+│   └── example.toml          # 示例配置
+├── scripts/
+│   ├── init_postgres.sql     # PostgreSQL 测试数据
+│   ├── init_mariadb.sql      # MariaDB 测试数据
+│   └── init_oracle.sql       # Oracle 测试数据
+├── testdata/                  # 测试数据目录
+├── docker-compose.yaml       # 数据库容器配置
 ├── go.mod
-├── main.go                      # 程序入口
-└── README.md                    # 项目说明
+├── README.md                  # 项目说明
+└── SPEC.md                    # 设计文档
 ```
 
 ---
@@ -449,13 +456,15 @@ data-absorb/
 |----|------|------|
 | github.com/alexflint/go-arg | v1.5.0 | CLI 解析 |
 | github.com/BurntSushi/toml | v1.4.0 | 配置解析 |
-| github.com/apache/arrow/go/v12 | v12.0.0 | Arrow/Parquet |
-| github.com/apache/arrow/go/v12/parquet | v12.0.0 | Parquet 写入 |
+| github.com/apache/arrow-go/v18 | v18.0.0 | Arrow/Parquet |
+| github.com/apache/arrow-go/v18/parquet | v18.0.0 | Parquet 写入 |
 | github.com/jackc/pgx/v5 | v5.5.0 | PostgreSQL |
 | github.com/go-sql-driver/mysql | v1.7.1 | MySQL |
 | github.com/mattn/go-sqlite3 | v1.14.18 | SQLite |
 | github.com/sijms/go-ora/v2 | v2.8.0 | Oracle |
 | github.com/denisenkom/go-mssqldb | v0.12.3 | MSSQL |
+| github.com/go-logr/logr | latest | 结构化日志 |
+| github.com/go-logr/stdr | latest | 日志实现 |
 
 ---
 

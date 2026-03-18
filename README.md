@@ -18,16 +18,19 @@ A general database export tool that exports database tables to columnar file for
 .
 ├── cmd/
 │   ├── data-absorb/          # CLI entry point
-│   └── integration_test/    # Integration test runner
+│   ├── integration_test/    # Integration test runner
+│   └── benchmark/            # Performance benchmark tool
 ├── internal/
-│   ├── config/              # Configuration parsing
-│   ├── converter/           # SQL to Arrow type mapping
-│   ├── db/                  # Database driver registration
-│   ├── scheduler/           # Worker pool scheduler
-│   └── writer/              # Parquet/Arrow IPC writers
+│   ├── config/               # Configuration parsing
+│   ├── converter/            # SQL to Arrow type mapping
+│   ├── db/                   # Database driver registration
+│   ├── scheduler/            # Worker pool scheduler
+│   └── writer/               # Parquet/Arrow IPC writers
+├── configs/                  # Sample configurations
+├── scripts/                  # Database init scripts
 ├── pkg/types/                # CLI argument types
 ├── testdata/                 # Test data directory
-├── Taskfile.yaml            # Task automation
+├── Taskfile.yaml             # Task automation
 ├── SPEC.md                   # Design specification
 └── README.md                 # This file
 ```
@@ -82,13 +85,36 @@ tables = ["users", "orders", "products"]
 
 ## Supported Databases
 
-| Database | Driver Name |
-|----------|-------------|
-| PostgreSQL | `pgx` or `postgres` |
-| MySQL | `mysql` |
-| SQLite | `sqlite3` |
-| Oracle | `oracle` |
-| MSSQL | `mssql` |
+| Database | Driver Name | Notes |
+|----------|-------------|-------|
+| PostgreSQL | `pgx` | Use `pgx` driver (stdlib) |
+| MySQL/MariaDB | `mysql` | |
+| SQLite | `sqlite3` | |
+| Oracle | `oracle` | Use DSN format `oracle://user:pass@host:port/service` |
+| MSSQL | `mssql` | |
+
+## Database Connection Examples
+
+```toml
+# PostgreSQL
+dsn = "postgres://user:password@localhost:5432/dbname?sslmode=disable"
+
+# MySQL/MariaDB  
+dsn = "user:password@tcp(localhost:3306)/dbname?charset=utf8mb4"
+
+# SQLite
+dsn = "/path/to/database.db"
+
+# Oracle
+dsn = "oracle://system:password@localhost:1521/XE"
+```
+
+## Table Name Handling
+
+- **Oracle**: Use schema prefix for tables outside current schema, e.g., `system.ALL_TYPES`
+- **MySQL/MariaDB**: Table names are backtick-quoted
+- **SQLite**: Table names used as-is
+- **PostgreSQL**: Table names used as-is
 
 ## Output Formats
 
@@ -124,6 +150,13 @@ task integration  # Run integration test
 task lint       # Run linter
 task clean      # Clean build artifacts
 task all        # Build, test, and integration
+
+# Database testing (requires Docker)
+task db-up         # Start database containers
+task db-init-*     # Initialize test data
+task db-export-*   # Export from database
+task db-test-*     # Verify exported data
+task db-down       # Stop database containers
 ```
 
 ### Using Go Commands
@@ -132,12 +165,36 @@ task all        # Build, test, and integration
 # Build
 go build -o bin/data-absorb ./cmd/data-absorb
 
+# Build benchmark tool
+go build -o bin/benchmark ./cmd/benchmark
+
 # Test
 go test ./...
 
 # Integration test
 go run ./cmd/integration_test
+
+# Run benchmark
+go run ./cmd/benchmark
 ```
+
+## Benchmark Tool
+
+The benchmark tool (`cmd/benchmark`) tests parallel export performance with multiple tables:
+
+```bash
+# Run benchmark
+go run ./cmd/benchmark
+
+# Or build and run
+go build -o benchmark ./cmd/benchmark && ./benchmark
+```
+
+The benchmark:
+- Tests with different row counts (10K, 100K, 1M)
+- Tests with different table counts (4, 8 tables)
+- Tests with different worker counts (1, 2, 4, 8)
+- Reports throughput (rows/sec) and scalability (speedup, efficiency)
 
 ## Integration Tests
 
