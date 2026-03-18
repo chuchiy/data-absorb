@@ -187,10 +187,18 @@ func (s *Scheduler) exportTable(ctx context.Context, dbHandle *sql.DB, table str
 	rowConverter := converter.NewRowConverter(arrowSchema)
 
 	mem := memory.NewGoAllocator()
-	_ = mem
 
 	batchSize := s.cfg.Global.BatchSize
-	_ = batchSize
+	if batchSize <= 0 {
+		batchSize = 10000
+	}
+
+	builders := make([]array.Builder, len(arrowSchema.Fields()))
+	for i, field := range arrowSchema.Fields() {
+		builders[i] = rowConverter.GetMapper().NewBuilder(mem, field.Type)
+	}
+
+	rowCount := int64(0)
 
 	for rows.Next() {
 		dest := make([]interface{}, len(arrowSchema.Fields()))
@@ -208,32 +216,57 @@ func (s *Scheduler) exportTable(ctx context.Context, dbHandle *sql.DB, table str
 			row[i] = val
 		}
 
-		builders, err := rowConverter.ConvertRow(row)
-		if err != nil {
+		if err := rowConverter.AppendRow(builders, row); err != nil {
 			return err
 		}
 
-		arrays := make([]arrow.Array, len(builders))
-		for i, b := range builders {
-			arrays[i] = b.NewArray()
-			b.Release()
-		}
+		rowCount++
 
-		record := array.NewRecord(arrowSchema, arrays, 1)
-		for _, arr := range arrays {
-			arr.Release()
+		if rowCount >= int64(batchSize) {
+			if err := s.writeBatch(arrowSchema, builders, w, rowCount); err != nil {
+				return err
+			}
+			rowCount = 0
+			for i, field := range arrowSchema.Fields() {
+				builders[i] = rowConverter.GetMapper().NewBuilder(mem, field.Type)
+			}
 		}
-
-		if err := w.Write(record); err != nil {
-			record.Release()
-			return err
-		}
-		record.Release()
 	}
 
 	if err := rows.Err(); err != nil {
 		return err
 	}
+
+	if rowCount > 0 {
+		if err := s.writeBatch(arrowSchema, builders, w, rowCount); err != nil {
+			return err
+		}
+	}
+
+	for _, b := range builders {
+		b.Release()
+	}
+
+	return nil
+}
+
+func (s *Scheduler) writeBatch(schema *arrow.Schema, builders []array.Builder, w writer.Writer, n int64) error {
+	arrays := make([]arrow.Array, len(builders))
+	for i, b := range builders {
+		arrays[i] = b.NewArray()
+		b.Release()
+	}
+
+	record := array.NewRecord(schema, arrays, n)
+	for _, arr := range arrays {
+		arr.Release()
+	}
+
+	if err := w.Write(record); err != nil {
+		record.Release()
+		return err
+	}
+	record.Release()
 
 	return nil
 }

@@ -54,6 +54,58 @@ func NewRowConverter(schema *arrow.Schema) *RowConverter {
 	}
 }
 
+func (c *RowConverter) GetMapper() *TypeMapper {
+	return c.mapper
+}
+
+func (c *RowConverter) AppendRow(builders []array.Builder, values []interface{}) error {
+	if len(values) != len(c.schema.Fields()) {
+		return fmt.Errorf("列数不匹配: expected %d, got %d", len(c.schema.Fields()), len(values))
+	}
+
+	for i, val := range values {
+		if val == nil {
+			builders[i].AppendNull()
+			continue
+		}
+
+		switch b := builders[i].(type) {
+		case *array.Int8Builder:
+			b.Append(convToInt8(val))
+		case *array.Int16Builder:
+			b.Append(convToInt16(val))
+		case *array.Int32Builder:
+			b.Append(convToInt32(val))
+		case *array.Int64Builder:
+			b.Append(convToInt64(val))
+		case *array.Uint8Builder:
+			b.Append(convToUint8(val))
+		case *array.Uint16Builder:
+			b.Append(convToUint16(val))
+		case *array.Uint32Builder:
+			b.Append(convToUint32(val))
+		case *array.Uint64Builder:
+			b.Append(convToUint64(val))
+		case *array.Float32Builder:
+			b.Append(convToFloat32(val))
+		case *array.Float64Builder:
+			b.Append(convToFloat64(val))
+		case *array.BooleanBuilder:
+			b.Append(convToBool(val))
+		case *array.StringBuilder:
+			b.Append(convToString(val))
+		case *array.BinaryBuilder:
+			b.Append(convToBytes(val))
+		case *array.Decimal128Builder:
+			b.Append(convToDecimal128(val))
+		default:
+			builders[i].AppendNull()
+		}
+	}
+
+	return nil
+}
+
 func (c *RowConverter) ConvertRow(values []interface{}) ([]array.Builder, error) {
 	if len(values) != len(c.schema.Fields()) {
 		return nil, fmt.Errorf("列数不匹配: expected %d, got %d", len(c.schema.Fields()), len(values))
