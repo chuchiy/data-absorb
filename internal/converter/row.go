@@ -6,6 +6,7 @@ import (
 
 	"github.com/apache/arrow-go/v18/arrow"
 	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/decimal"
 	"github.com/apache/arrow-go/v18/arrow/memory"
 )
 
@@ -96,11 +97,13 @@ func (c *RowConverter) ConvertRow(values []interface{}) ([]array.Builder, error)
 			b.Append(convToBool(val))
 		case *array.StringBuilder:
 			b.Append(fmt.Sprintf("%v", val))
-		case *array.BinaryBuilder:
-			b.Append(convToBytes(val))
-		default:
-			b.AppendNull()
-		}
+	case *array.BinaryBuilder:
+		b.Append(convToBytes(val))
+	case *array.Decimal128Builder:
+		b.Append(convToDecimal128(val))
+	default:
+		b.AppendNull()
+	}
 	}
 
 	return builders, nil
@@ -439,5 +442,41 @@ func convToBytes(v interface{}) []byte {
 		return []byte(n)
 	default:
 		return nil
+	}
+}
+
+func convToDecimal128(v interface{}) decimal.Decimal128 {
+	switch n := v.(type) {
+	case int8:
+		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+	case int16:
+		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+	case int32:
+		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+	case int64:
+		return decimal.NewDecimal128FromInt(n * 10000)
+	case int:
+		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+	case uint8:
+		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+	case uint16:
+		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+	case uint32:
+		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+	case uint64:
+		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+	case uint:
+		return decimal.NewDecimal128FromInt(int64(n) * 10000)
+	case float32:
+		r, _ := decimal.Decimal128FromFloat(float64(n), 38, 10)
+		return r
+	case float64:
+		r, _ := decimal.Decimal128FromFloat(n, 38, 10)
+		return r
+	case string:
+		r, _ := decimal.Decimal128FromString(n, 38, 10)
+		return r
+	default:
+		return decimal.NewDecimal128FromInt(0)
 	}
 }
