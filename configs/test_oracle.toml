@@ -12,4 +12,4 @@ dsn = "oracle://system:oraclepass@localhost:1521/XE"
 
 [[tasks]]
 db = "test_oracle"
-tables = ["all_types"]
+tables = ["system.ALL_TYPES", "system.NULLABLE_TEST", "system.HUGE_TABLE"]

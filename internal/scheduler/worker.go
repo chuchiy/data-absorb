@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/apache/arrow-go/v18/arrow"
@@ -23,6 +24,20 @@ var _ = len(sql.Drivers()) > 0
 
 func init() {
 	stdr.SetVerbosity(0)
+}
+
+func quoteTableName(table, driver string) string {
+	if strings.Contains(table, ".") {
+		return table
+	}
+	switch driver {
+	case "oracle":
+		return fmt.Sprintf("\"%s\"", strings.ToUpper(table))
+	case "mysql", "mariadb":
+		return fmt.Sprintf("`%s`", table)
+	default:
+		return table
+	}
 }
 
 type Scheduler struct {
@@ -88,6 +103,8 @@ func (s *Scheduler) executeTask(ctx context.Context, task config.TaskConfig) err
 		return fmt.Errorf("E003: 获取数据库 %s 失败: %w", task.DB, err)
 	}
 
+	driver := s.registry.GetDriver(task.DB)
+
 	outputDir := s.cfg.Global.OutputDir
 	format := s.cfg.Global.DefaultFormat
 	if task.Format != "" {
@@ -99,7 +116,8 @@ func (s *Scheduler) executeTask(ctx context.Context, task config.TaskConfig) err
 	for _, table := range task.Tables {
 		s.log.Info("Processing table", "table", table)
 
-		columns, err := s.getColumns(ctx, dbHandle, table)
+		quotedTable := quoteTableName(table, driver)
+		columns, err := s.getColumns(ctx, dbHandle, quotedTable)
 		if err != nil {
 			s.log.Error(err, "Failed to get table columns, skipping", "table", table)
 			continue
@@ -122,7 +140,7 @@ func (s *Scheduler) executeTask(ctx context.Context, task config.TaskConfig) err
 			continue
 		}
 
-		if err := s.exportTable(ctx, dbHandle, table, schema, w); err != nil {
+		if err := s.exportTable(ctx, dbHandle, quotedTable, schema, w); err != nil {
 			s.log.Error(err, "Failed to export table, skipping", "table", table)
 			w.Close()
 			continue

@@ -19,6 +19,7 @@ func init() {
 
 type DriverRegistry struct {
 	drivers   map[string]*sql.DB
+	driverMap map[string]string
 	maxConns  int
 	idleConns int
 }
@@ -32,6 +33,7 @@ func NewDriverRegistry(maxConns, idleConns int) *DriverRegistry {
 	}
 	return &DriverRegistry{
 		drivers:   make(map[string]*sql.DB),
+		driverMap: make(map[string]string),
 		maxConns:  maxConns,
 		idleConns: idleConns,
 	}
@@ -52,6 +54,7 @@ func (r *DriverRegistry) Register(ctx context.Context, name, driver, dsn string)
 	db.SetMaxIdleConns(r.idleConns)
 
 	r.drivers[name] = db
+	r.driverMap[name] = driver
 	return nil
 }
 
@@ -61,6 +64,10 @@ func (r *DriverRegistry) Get(name string) (*sql.DB, error) {
 		return nil, fmt.Errorf("数据库 %s 未注册", name)
 	}
 	return db, nil
+}
+
+func (r *DriverRegistry) GetDriver(name string) string {
+	return r.driverMap[name]
 }
 
 func (r *DriverRegistry) Close() error {
