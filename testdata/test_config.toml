@@ -1,0 +1,17 @@
+# test config
+[global]
+workers = 1
+batch_size = 1000
+default_format = "parquet"
+output_dir = "./testdata/output"
+overwrite = true
+log_level = "info"
+
+[[databases]]
+name = "test_db"
+driver = "sqlite3"
+dsn = "/home/dht/agentic/data-absorb/testdata/test.db"
+
+[[tasks]]
+db = "test_db"
+tables = ["test_types", "test_nulls", "test_empty"]
