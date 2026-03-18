@@ -1,0 +1,15 @@
+[global]
+workers = 1
+batch_size = 1000
+default_format = "parquet"
+output_dir = "/tmp/parquet_out"
+overwrite = true
+
+[[databases]]
+name = "test_sqlite"
+driver = "sqlite3"
+dsn = "/tmp/test.db"
+
+[[tasks]]
+db = "test_sqlite"
+tables = ["test"]

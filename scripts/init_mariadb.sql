@@ -28,7 +28,7 @@ CREATE TABLE all_types (
 -- Set session for faster inserts
 SET SESSION foreign_key_checks = 0;
 SET SESSION unique_checks = 0;
-SET SESSION sync_binlog = 0;
+SET GLOBAL sync_binlog = 0;
 
 -- Insert 1 million rows using stored procedure
 DELIMITER //
@@ -136,8 +136,7 @@ SELECT
     n * 0.01,
     n % 2 = 0,
     TIMESTAMPADD(SECOND, n % 1000000, '2024-01-01 00:00:00')
-FROM nums
-OPTION (MAX_STATEMENT_TIME = 3600);
+FROM nums;
 
 -- Verify row counts
 SELECT 'all_types' as table_name, COUNT(*) as row_count FROM all_types

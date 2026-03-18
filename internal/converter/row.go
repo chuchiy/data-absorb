@@ -96,7 +96,7 @@ func (c *RowConverter) ConvertRow(values []interface{}) ([]array.Builder, error)
 		case *array.BooleanBuilder:
 			b.Append(convToBool(val))
 		case *array.StringBuilder:
-			b.Append(fmt.Sprintf("%v", val))
+			b.Append(convToString(val))
 	case *array.BinaryBuilder:
 		b.Append(convToBytes(val))
 	case *array.Decimal128Builder:
@@ -445,37 +445,48 @@ func convToBytes(v interface{}) []byte {
 	}
 }
 
+func convToString(v interface{}) string {
+	switch n := v.(type) {
+	case string:
+		return n
+	case []byte:
+		return string(n)
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
+
 func convToDecimal128(v interface{}) decimal.Decimal128 {
 	switch n := v.(type) {
 	case int8:
-		r, _ := decimal.Decimal128FromFloat(float64(int64(n)*10000), 38, 10)
+		r, _ := decimal.Decimal128FromFloat(float64(n), 38, 0)
 		return r
 	case int16:
-		r, _ := decimal.Decimal128FromFloat(float64(int64(n)*10000), 38, 10)
+		r, _ := decimal.Decimal128FromFloat(float64(n), 38, 0)
 		return r
 	case int32:
-		r, _ := decimal.Decimal128FromFloat(float64(int64(n)*10000), 38, 10)
+		r, _ := decimal.Decimal128FromFloat(float64(n), 38, 0)
 		return r
 	case int64:
-		r, _ := decimal.Decimal128FromFloat(float64(n)*10000, 38, 10)
+		r, _ := decimal.Decimal128FromFloat(float64(n), 38, 0)
 		return r
 	case int:
-		r, _ := decimal.Decimal128FromFloat(float64(n)*10000, 38, 10)
+		r, _ := decimal.Decimal128FromFloat(float64(n), 38, 0)
 		return r
 	case uint8:
-		r, _ := decimal.Decimal128FromFloat(float64(int64(n)*10000), 38, 10)
+		r, _ := decimal.Decimal128FromFloat(float64(n), 38, 0)
 		return r
 	case uint16:
-		r, _ := decimal.Decimal128FromFloat(float64(int64(n)*10000), 38, 10)
+		r, _ := decimal.Decimal128FromFloat(float64(n), 38, 0)
 		return r
 	case uint32:
-		r, _ := decimal.Decimal128FromFloat(float64(int64(n)*10000), 38, 10)
+		r, _ := decimal.Decimal128FromFloat(float64(n), 38, 0)
 		return r
 	case uint64:
-		r, _ := decimal.Decimal128FromFloat(float64(n)*10000, 38, 10)
+		r, _ := decimal.Decimal128FromFloat(float64(n), 38, 0)
 		return r
 	case uint:
-		r, _ := decimal.Decimal128FromFloat(float64(n)*10000, 38, 10)
+		r, _ := decimal.Decimal128FromFloat(float64(n), 38, 0)
 		return r
 	case float32:
 		r, _ := decimal.Decimal128FromFloat(float64(n), 38, 10)
@@ -485,6 +496,9 @@ func convToDecimal128(v interface{}) decimal.Decimal128 {
 		return r
 	case string:
 		r, _ := decimal.Decimal128FromString(n, 38, 10)
+		return r
+	case []byte:
+		r, _ := decimal.Decimal128FromString(string(n), 38, 10)
 		return r
 	default:
 		r, _ := decimal.Decimal128FromFloat(0, 38, 10)

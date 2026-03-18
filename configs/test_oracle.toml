@@ -1,0 +1,15 @@
+[global]
+workers = 1
+batch_size = 1000
+default_format = "parquet"
+output_dir = "/tmp/parquet_test"
+overwrite = true
+
+[[databases]]
+name = "test_oracle"
+driver = "oracle"
+dsn = "oracle://system:oraclepass@localhost:1521/XE"
+
+[[tasks]]
+db = "test_oracle"
+tables = ["all_types"]

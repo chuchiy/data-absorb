@@ -1,0 +1,15 @@
+[global]
+workers = 1
+batch_size = 1000
+default_format = "parquet"
+output_dir = "/tmp/parquet_test"
+overwrite = true
+
+[[databases]]
+name = "test_postgres"
+driver = "pgx"
+dsn = "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable"
+
+[[tasks]]
+db = "test_postgres"
+tables = ["all_types"]

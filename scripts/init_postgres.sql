@@ -37,7 +37,7 @@ SELECT
     i * 1.23456789::float8,
     (i * 1.2345)::decimal(18,4),
     'varchar_' || i,
-    'text_' || repeat('x', min(i % 200, 200)) || i,
+    'text_' || repeat('x', LEAST(i % 200, 200)) || i,
     i % 2 = 0,
     DATE '2024-01-01' + (i % 365) * INTERVAL '1 day',
     TIMESTAMP '2024-01-01 00:00:00' + (i % 100000) * INTERVAL '1 minute',
