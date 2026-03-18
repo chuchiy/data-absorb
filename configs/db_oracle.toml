@@ -8,8 +8,8 @@ overwrite = true
 [[databases]]
 name = "ora"
 driver = "oracle"
-dsn = "system/oraclepass@//localhost:1521/XE"
+dsn = "oracle://system:oraclepass@localhost:1521/XE"
 
 [[tasks]]
 db = "ora"
-tables = ["all_types", "nullable_test", "huge_table"]
+tables = ["system.ALL_TYPES", "system.NULLABLE_TEST", "system.HUGE_TABLE"]

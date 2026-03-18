@@ -57,8 +57,8 @@ tasks:
   db-init-mariadb:
     desc: Initialize MariaDB test data
     cmds:
-      - docker exec data-absorb-mariadb mysql -uroot -prootpass testdb -e "DROP TABLE IF EXISTS all_types, nullable_test, huge_table;"
-      - docker exec -i data-absorb-mariadb mysql -uroot -prootpass testdb < scripts/init_mariadb.sql
+      - docker exec data-absorb-mariadb mariadb -uroot -prootpass testdb -e "DROP TABLE IF EXISTS all_types, nullable_test, huge_table;"
+      - docker exec -i data-absorb-mariadb mariadb -uroot -prootpass testdb < scripts/init_mariadb.sql
 
   db-init-oracle:
     desc: Initialize Oracle test data

@@ -7,7 +7,7 @@ overwrite = true
 
 [[databases]]
 name = "pg"
-driver = "postgres"
+driver = "pgx"
 dsn = "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable"
 
 [[tasks]]

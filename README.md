@@ -230,6 +230,28 @@ Each database is initialized with:
 
 ### Run Database Export Tests
 
+Using Taskfile (recommended):
+
+```bash
+# Start all databases
+task db-up
+
+# Export from each database
+task db-export-postgres
+task db-export-mariadb
+task db-export-oracle
+
+# Or run full test for each database
+task db-test-postgres
+task db-test-mariadb
+task db-test-oracle
+
+# Stop databases when done
+task db-down
+```
+
+Using Go commands:
+
 ```bash
 # Build the tool
 go build -o data-absorb ./cmd/data-absorb
