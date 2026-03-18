@@ -131,6 +131,42 @@ go test -v -run "TestIntegration" ./internal/scheduler/
 go build -o data-absorb ./cmd/cli/
 ```
 
+## Dependencies
+
+- **Apache Arrow**: [github.com/apache/arrow-go/v18](https://github.com/apache/arrow-go) - Arrow/Parquet 处理
+- **SQLite**: [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3) - SQLite 驱动
+- **Logger**: [github.com/go-logr/logr](https://github.com/go-logr/logr) - 结构化日志
+- **CLI**: [github.com/alexflint/go-arg](https://github.com/alexflint/go-arg) - 命令行参数解析
+- **Config**: [github.com/BurntSushi/toml](https://github.com/BurntSushi/toml) - TOML 配置解析
+- **PostgreSQL**: [github.com/jackc/pgx/v5](https://github.com/jackc/pgx) - PostgreSQL 驱动
+- **MySQL**: [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql) - MySQL 驱动
+- **MSSQL**: [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb) - MSSQL 驱动
+- **Oracle**: [github.com/sijms/go-ora/v2](https://github.com/sijms/go-ora) - Oracle 驱动
+
+## Integration Tests
+
+The project includes integration tests that verify end-to-end functionality:
+
+```bash
+# Run all integration tests
+go test -v -run "TestIntegration" ./internal/scheduler/
+```
+
+### Test Integration Methods
+
+1. **TestIntegration_SQLiteToParquet**: Tests exporting a SQLite table to Parquet format
+   - Creates a test database connection
+   - Exports the `test_types` table
+   - Verifies output file is created and non-empty
+
+2. **TestIntegration_EmptyTable**: Tests handling of empty tables
+   - Exports an empty table
+   - Verifies schema-only file is created
+
+3. **TestIntegration_MultipleTables**: Tests parallel processing of multiple tables
+   - Exports multiple tables in a single task
+   - Verifies all output files are created
+
 ## License
 
 MIT

@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/apache/arrow/go/v12/arrow"
+	"github.com/apache/arrow-go/v18/arrow"
 )
 
 type Writer interface {

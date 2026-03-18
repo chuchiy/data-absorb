@@ -15,6 +15,8 @@ import (
 	_ "github.com/sijms/go-ora/v2"
 
 	"github.com/alexflint/go-arg"
+	stdr2 "github.com/go-logr/stdr"
+
 	"github.com/data-absorb/data-absorb/internal/config"
 	"github.com/data-absorb/data-absorb/internal/scheduler"
 	"github.com/data-absorb/data-absorb/pkg/types"
@@ -41,42 +43,36 @@ func Run(ctx context.Context, args []string) error {
 		return nil
 	}
 
-	setLogLevel(a.LogLevel)
+	logLevel := a.LogLevel
+	var verbosity int
+	switch logLevel {
+	case "debug":
+		verbosity = 1
+	case "info":
+		verbosity = 0
+	case "warn":
+		verbosity = -1
+	case "error":
+		verbosity = -2
+	default:
+		verbosity = 0
+	}
+	stdr2.SetVerbosity(verbosity)
+	logger := stdr2.New(log.New(os.Stderr, "", 0))
 
-	log.Printf("Loading config from: %s", a.Config)
+	logger.Info("Loading config", "config", a.Config)
 	cfg, err := config.Load(a.Config)
 	if err != nil {
 		return fmt.Errorf("E001: 配置解析失败: %w", err)
 	}
 
-	log.Printf("Config loaded: %d databases, %d tasks", len(cfg.Databases), len(cfg.Tasks))
-	log.Printf("Output dir: %s", cfg.Global.OutputDir)
+	logger.Info("Config loaded", "databases", len(cfg.Databases), "tasks", len(cfg.Tasks), "outputDir", cfg.Global.OutputDir)
 
-	s := scheduler.New(cfg)
+	s := scheduler.New(cfg, logger)
 	if err := s.Run(ctx); err != nil {
 		return fmt.Errorf("E006: 任务执行失败: %w", err)
 	}
 
-	log.Printf("All tasks completed successfully")
+	logger.Info("All tasks completed successfully")
 	return nil
-}
-
-func setLogLevel(level string) {
-	switch level {
-	case "debug":
-		log.SetFlags(log.LstdFlags | log.Lshortfile)
-		log.SetOutput(os.Stderr)
-	case "info":
-		log.SetFlags(log.LstdFlags)
-		log.SetOutput(os.Stderr)
-	case "warn":
-		log.SetFlags(log.LstdFlags)
-		log.SetOutput(os.Stderr)
-	case "error":
-		log.SetFlags(log.LstdFlags)
-		log.SetOutput(os.Stderr)
-	default:
-		log.SetFlags(log.LstdFlags)
-		log.SetOutput(os.Stderr)
-	}
 }

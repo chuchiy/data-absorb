@@ -4,12 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"sync"
 
-	"github.com/apache/arrow/go/v12/arrow"
-	"github.com/apache/arrow/go/v12/arrow/array"
-	"github.com/apache/arrow/go/v12/arrow/memory"
+	"github.com/apache/arrow-go/v18/arrow"
+	"github.com/apache/arrow-go/v18/arrow/array"
+	"github.com/apache/arrow-go/v18/arrow/memory"
+	"github.com/go-logr/logr"
+	"github.com/go-logr/stdr"
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/data-absorb/data-absorb/internal/config"
@@ -20,18 +21,27 @@ import (
 
 var _ = len(sql.Drivers()) > 0
 
+func init() {
+	stdr.SetVerbosity(0)
+}
+
 type Scheduler struct {
 	cfg           *config.Config
 	registry      *db.DriverRegistry
 	schemaBuilder *converter.SchemaBuilder
+	log           logr.Logger
 	wg            sync.WaitGroup
 }
 
-func New(cfg *config.Config) *Scheduler {
+func New(cfg *config.Config, log logr.Logger) *Scheduler {
+	if !log.Enabled() {
+		log = stdr.New(nil)
+	}
 	return &Scheduler{
 		cfg:           cfg,
 		registry:      db.NewDriverRegistry(cfg.Global.Workers, cfg.Global.Workers),
 		schemaBuilder: converter.NewSchemaBuilder(),
+		log:           log,
 	}
 }
 
@@ -39,12 +49,12 @@ func (s *Scheduler) Run(ctx context.Context) error {
 	defer s.registry.Close()
 
 	for _, dbConfig := range s.cfg.Databases {
-		log.Printf("Registering database: %s (driver: %s, dsn: %s)", dbConfig.Name, dbConfig.Driver, dbConfig.DSN)
+		s.log.Info("Registering database", "name", dbConfig.Name, "driver", dbConfig.Driver, "dsn", dbConfig.DSN)
 		if err := s.registry.Register(ctx, dbConfig.Name, dbConfig.Driver, dbConfig.DSN); err != nil {
-			log.Printf("ERROR: Failed to register database %s: %v", dbConfig.Name, err)
+			s.log.Error(err, "Failed to register database", "name", dbConfig.Name)
 			return fmt.Errorf("E002: 数据库 %s 连接失败: %w", dbConfig.Name, err)
 		}
-		log.Printf("Database %s registered successfully", dbConfig.Name)
+		s.log.Info("Database registered successfully", "name", dbConfig.Name)
 	}
 
 	taskCh := make(chan config.TaskConfig, len(s.cfg.Tasks))
@@ -67,7 +77,7 @@ func (s *Scheduler) worker(ctx context.Context, id int, tasks <-chan config.Task
 
 	for task := range tasks {
 		if err := s.executeTask(ctx, task); err != nil {
-			log.Printf("Worker %d: Task %s failed: %v", id, task.Tables, err)
+			s.log.Error(err, "Task failed", "worker", id, "tables", task.Tables)
 		}
 	}
 }
@@ -97,7 +107,7 @@ func (s *Scheduler) executeTask(ctx context.Context, task config.TaskConfig) err
 	factory := writer.NewWriterFactory(outputDir, s.cfg.Global.Overwrite)
 
 	for _, table := range task.Tables {
-		log.Printf("Processing table: %s", table)
+		s.log.Info("Processing table", "table", table)
 		outputFile := table + ".parquet"
 		if format == "arrow" {
 			outputFile = table + ".arrow"
@@ -105,20 +115,20 @@ func (s *Scheduler) executeTask(ctx context.Context, task config.TaskConfig) err
 
 		w, err := factory.Create(outputFile, format, schema)
 		if err != nil {
-			log.Printf("WARNING: Failed to create writer for table %s: %v (skipping)", table, err)
+			s.log.Error(err, "Failed to create writer for table, skipping", "table", table)
 			continue
 		}
 
 		if err := s.exportTable(ctx, dbHandle, table, schema, w); err != nil {
-			log.Printf("WARNING: Failed to export table %s: %v (skipping)", table, err)
+			s.log.Error(err, "Failed to export table, skipping", "table", table)
 			w.Close()
 			continue
 		}
 
 		if err := w.Close(); err != nil {
-			log.Printf("WARNING: Failed to close writer for table %s: %v", table, err)
+			s.log.Error(err, "Failed to close writer for table", "table", table)
 		}
-		log.Printf("Table %s exported successfully", table)
+		s.log.Info("Table exported successfully", "table", table)
 	}
 
 	return nil

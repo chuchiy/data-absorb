@@ -6,9 +6,38 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/go-logr/logr"
 	"github.com/data-absorb/data-absorb/internal/config"
 	_ "github.com/mattn/go-sqlite3"
 )
+
+type testLogSink struct {
+	t *testing.T
+}
+
+func (t *testLogSink) Init(info logr.RuntimeInfo) {}
+
+func (t *testLogSink) Enabled(level int) bool { return true }
+
+func (t *testLogSink) Info(level int, msg string, keysAndValues ...interface{}) {
+	t.t.Logf(msg, keysAndValues...)
+}
+
+func (t *testLogSink) Error(err error, msg string, keysAndValues ...interface{}) {
+	t.t.Logf("ERROR: %s: %v", msg, err)
+}
+
+func (t *testLogSink) WithValues(keysAndValues ...interface{}) logr.LogSink {
+	return t
+}
+
+func (t *testLogSink) WithName(name string) logr.LogSink {
+	return t
+}
+
+func getLogger(t *testing.T) logr.Logger {
+	return logr.New(&testLogSink{t: t})
+}
 
 func TestIntegration_SQLiteToParquet(t *testing.T) {
 	outputDir := "./testdata/integration_output"
@@ -38,7 +67,7 @@ func TestIntegration_SQLiteToParquet(t *testing.T) {
 		},
 	}
 
-	s := New(cfg)
+	s := New(cfg, getLogger(t))
 	if err := s.Run(context.Background()); err != nil {
 		t.Fatalf("Scheduler run failed: %v", err)
 	}
@@ -85,7 +114,7 @@ func TestIntegration_EmptyTable(t *testing.T) {
 		},
 	}
 
-	s := New(cfg)
+	s := New(cfg, getLogger(t))
 	if err := s.Run(context.Background()); err != nil {
 		t.Fatalf("Scheduler run failed: %v", err)
 	}
@@ -127,7 +156,7 @@ func TestIntegration_MultipleTables(t *testing.T) {
 		},
 	}
 
-	s := New(cfg)
+	s := New(cfg, getLogger(t))
 	if err := s.Run(context.Background()); err != nil {
 		t.Fatalf("Scheduler run failed: %v", err)
 	}
