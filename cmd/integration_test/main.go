@@ -362,11 +362,11 @@ func verifyTestTypesData(outputDir string) error {
 	checks := []struct {
 		id     int
 		name   string
-		amount string
+		amount float64
 	}{
-		{1, "User_0001", "1.50"},
-		{500, "User_0500", "750.00"},
-		{1000, "User_1000", "1500.00"},
+		{1, "User_0001", 1.50},
+		{500, "User_0500", 750.00},
+		{1000, "User_1000", 1500.00},
 	}
 
 	for _, check := range checks {
@@ -381,14 +381,18 @@ func verifyTestTypesData(outputDir string) error {
 		fields := strings.Split(line, ",")
 		if len(fields) >= 2 {
 			name := strings.TrimSpace(fields[0])
-			amount := strings.TrimSpace(fields[1])
+			amountStr := strings.TrimSpace(fields[1])
+			amount, err := strconv.ParseFloat(amountStr, 64)
+			if err != nil {
+				return fmt.Errorf("parse amount for id=%d: %w", check.id, err)
+			}
 			if name != check.name {
 				return fmt.Errorf("id=%d: expected name %s, got %s", check.id, check.name, name)
 			}
 			if amount != check.amount {
-				return fmt.Errorf("id=%d: expected amount %s, got %s", check.id, check.amount, amount)
+				return fmt.Errorf("id=%d: expected amount %v, got %v", check.id, check.amount, amount)
 			}
-			log.Printf("    ✓ id=%d: name=%s, amount=%s", check.id, name, amount)
+			log.Printf("    ✓ id=%d: name=%s, amount=%v", check.id, name, amount)
 		}
 	}
 

@@ -1,16 +1,30 @@
 -- Oracle XE Test Data Initialization
--- Creates tables with 1M+ rows for testing data-absorb
+-- Creates tables with test data for data-absorb
 
--- Connect as system user
-CONNECT system/oraclepass@//localhost/XE
-
--- Create testuser and grant privileges
+-- Set schema to system
 ALTER SESSION SET CURRENT_SCHEMA = SYSTEM;
 
--- Drop tables if exists
-DROP TABLE all_types CASCADE;
-DROP TABLE nullable_test CASCADE;
-DROP TABLE huge_table CASCADE;
+-- Drop tables if exists (ignore errors if they don't exist)
+BEGIN
+   EXECUTE IMMEDIATE 'DROP TABLE all_types CASCADE CONSTRAINTS';
+EXCEPTION
+   WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF;
+END;
+/
+
+BEGIN
+   EXECUTE IMMEDIATE 'DROP TABLE nullable_test CASCADE CONSTRAINTS';
+EXCEPTION
+   WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF;
+END;
+/
+
+BEGIN
+   EXECUTE IMMEDIATE 'DROP TABLE huge_table CASCADE CONSTRAINTS';
+EXCEPTION
+   WHEN OTHERS THEN IF SQLCODE != -942 THEN RAISE; END IF;
+END;
+/
 
 -- Create tables
 CREATE TABLE all_types (
@@ -46,73 +60,49 @@ CREATE TABLE huge_table (
     created_at TIMESTAMP
 );
 
--- Insert data using PL/SQL (will take a while for 1M rows)
--- For testing, we insert 100k rows first to verify, then can increase
+-- Insert test data (1000 rows)
+INSERT INTO all_types
+SELECT 
+    ROWNUM as id,
+    MOD(ROWNUM, 100000),
+    ROWNUM * 1000,
+    MOD(ROWNUM, 1000),
+    ROWNUM * 0.123456789,
+    ROWNUM * 1.23456789,
+    ROWNUM * 1.2345,
+    'varchar_' || ROWNUM,
+    'text_' || ROWNUM,
+    MOD(ROWNUM, 2),
+    TRUNC(SYSDATE) + MOD(ROWNUM, 365),
+    SYSDATE + (MOD(ROWNUM, 100000) / 1440),
+    NULL
+FROM dual
+CONNECT BY LEVEL <= 1000;
 
-DECLARE
-    batch_size NUMBER := 10000;
-    total_rows NUMBER := 100000;  -- Start with 100k for initial test
-BEGIN
-    -- Insert all_types
-    FOR i IN 1..total_rows LOOP
-        INSERT INTO all_types VALUES (
-            i,
-            MOD(i, 100000),
-            i * 1000,
-            MOD(i, 1000),
-            i * 0.123456789,
-            i * 1.23456789,
-            i * 1.2345,
-            'varchar_' || i,
-            'text_' || RPAD('x', 50, 'x') || i,
-            MOD(i, 2),
-            TRUNC(SYSDATE) + MOD(i, 365),
-            SYSDATE + (MOD(i, 100000) / 1440,
-            UTL_RAW.CAST_TO_RAW(DBMS_OBFUSCATION_TOOLKIT.MD5(INPUT_STRING => TO_CHAR(i)))
-        );
-        
-        IF MOD(i, batch_size) = 0 THEN
-            COMMIT;
-        END IF;
-    END LOOP;
-    COMMIT;
-    
-    -- Insert nullable_test
-    FOR i IN 1..total_rows LOOP
-        INSERT INTO nullable_test VALUES (
-            i,
-            CASE WHEN MOD(i,3) = 0 THEN NULL ELSE MOD(i,100000) END,
-            CASE WHEN MOD(i,5) = 0 THEN NULL ELSE 'varchar_' || i END,
-            CASE WHEN MOD(i,7) = 0 THEN NULL ELSE i * 1.5 END,
-            CASE WHEN MOD(i,11) = 0 THEN NULL ELSE SYSDATE + (MOD(i,100000) / 1440 END,
-            CASE WHEN MOD(i,13) = 0 THEN NULL ELSE MOD(i,2) END
-        );
-        
-        IF MOD(i, batch_size) = 0 THEN
-            COMMIT;
-        END IF;
-    END LOOP;
-    COMMIT;
-    
-    -- Insert huge_table
-    FOR i IN 1..total_rows LOOP
-        INSERT INTO huge_table VALUES (
-            i,
-            'name_' || LPAD(i, 7, '0'),
-            i * 0.01,
-            MOD(i, 2),
-            SYSDATE + (MOD(i,1000000) / 86400)
-        );
-        
-        IF MOD(i, batch_size) = 0 THEN
-            COMMIT;
-        END IF;
-    END LOOP;
-    COMMIT;
-    
-    DBMS_OUTPUT.PUT_LINE('Inserted ' || total_rows || ' rows into each table');
-END;
-/
+-- Insert nullable_test
+INSERT INTO nullable_test
+SELECT 
+    ROWNUM as id,
+    CASE WHEN MOD(ROWNUM,3) = 0 THEN NULL ELSE MOD(ROWNUM,100000) END,
+    CASE WHEN MOD(ROWNUM,5) = 0 THEN NULL ELSE 'varchar_' || ROWNUM END,
+    CASE WHEN MOD(ROWNUM,7) = 0 THEN NULL ELSE ROWNUM * 1.5 END,
+    CASE WHEN MOD(ROWNUM,11) = 0 THEN NULL ELSE SYSDATE + (MOD(ROWNUM,100000) / 1440) END,
+    CASE WHEN MOD(ROWNUM,13) = 0 THEN NULL ELSE MOD(ROWNUM,2) END
+FROM dual
+CONNECT BY LEVEL <= 1000;
+
+-- Insert huge_table
+INSERT INTO huge_table
+SELECT 
+    ROWNUM as id,
+    'name_' || LPAD(ROWNUM, 7, '0'),
+    ROWNUM * 0.01,
+    MOD(ROWNUM, 2),
+    SYSDATE + (MOD(ROWNUM,1000000) / 86400)
+FROM dual
+CONNECT BY LEVEL <= 1000;
+
+COMMIT;
 
 -- Verify counts
 SELECT 'all_types' as table_name, COUNT(*) as row_count FROM all_types
@@ -120,9 +110,3 @@ UNION ALL
 SELECT 'nullable_test', COUNT(*) FROM nullable_test
 UNION ALL
 SELECT 'huge_table', COUNT(*) FROM huge_table;
-
--- Show table sizes
-SELECT segment_name, bytes / 1024 / 1024 as size_mb
-FROM user_segments
-WHERE segment_type = 'TABLE'
-ORDER BY bytes DESC;

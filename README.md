@@ -178,6 +178,113 @@ go run ./cmd/integration_test
 go run ./cmd/benchmark
 ```
 
+## Database Testing
+
+This section describes how to set up and run tests against real databases (PostgreSQL, MariaDB, Oracle).
+
+### Prerequisites
+
+- Docker and Docker Compose
+- At least 4GB RAM available for database containers
+
+### Start Database Containers
+
+```bash
+# Start all databases
+docker-compose up -d
+
+# Or start individually
+docker-compose up -d postgres
+docker-compose up -d mariadb
+docker-compose up -d oracle
+```
+
+### Initialize Test Data
+
+Database containers automatically initialize on first start using init scripts in `scripts/`:
+
+- `init_postgres.sql` - PostgreSQL test data
+- `init_mariadb.sql` - MariaDB test data
+- `init_oracle.sql` - Oracle test data
+
+If containers already exist with stale data, recreate them:
+
+```bash
+# Remove old containers and volumes
+docker-compose down -v
+
+# Start fresh
+docker-compose up -d
+```
+
+### Test Data Description
+
+Each database is initialized with:
+
+| Table | Rows | Purpose |
+|-------|------|---------|
+| `all_types` | 1,000 | Various SQL data types |
+| `nullable_test` | 5 | NULL handling |
+| `huge_table` | 100,000 | Large table performance |
+| `export_table_1` to `export_table_20` | 10,000 each | Parallel export testing |
+
+### Run Database Export Tests
+
+```bash
+# Build the tool
+go build -o data-absorb ./cmd/data-absorb
+
+# Test PostgreSQL export
+./data-absorb --config configs/test_postgres.toml
+
+# Test MariaDB export
+./data-absorb --config configs/test_mariadb.toml
+
+# Test Oracle export
+./data-absorb --config configs/test_oracle.toml
+```
+
+### Verify Exported Data
+
+Use duckdb to verify Parquet files:
+
+```bash
+# Install duckdb CLI (if not available)
+# brew install duckdb  # macOS
+# apt-get install duckdb  # Ubuntu
+
+# Verify PostgreSQL export
+duckdb -c "SELECT * FROM read_parquet('/tmp/parquet_test/all_types.parquet') LIMIT 5;"
+
+# Check row count
+duckdb -c "SELECT COUNT(*) FROM read_parquet('/tmp/parquet_test/all_types.parquet');"
+```
+
+### Stop Database Containers
+
+```bash
+# Stop all containers
+docker-compose down
+
+# Stop and remove volumes (clears all data)
+docker-compose down -v
+```
+
+### Quick Reference
+
+```bash
+# Full workflow
+docker-compose down -v          # Clean start
+docker-compose up -d            # Start databases
+sleep 30                        # Wait for initialization
+go build -o data-absorb ./cmd/data-absorb
+./data-absorb --config configs/test_postgres.toml
+./data-absorb --config configs/test_mariadb.toml
+./data-absorb --config configs/test_oracle.toml
+go test ./...                   # Run unit tests
+docker-compose down             # Cleanup
+```
+
 ## Benchmark Tool
 
 The benchmark tool (`cmd/benchmark`) tests parallel export performance with multiple tables:

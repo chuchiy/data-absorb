@@ -41,7 +41,7 @@ tasks:
   db-down:
     desc: Stop database containers
     cmds:
-      - docker-compose down
+      - docker-compose down -v
 
   db-wait:
     desc: Wait for databases to be ready
